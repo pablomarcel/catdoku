@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Catdoku - Multiplayer Sudoku</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #lobby {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .tile {
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border: 1px solid #ddd;
+        }
+        .tile.correct {
+            background-color: #c8e6c9;
+        }
+        .tile.incorrect {
+            background-color: #ffcdd2;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="lobby">
+        <h1>Catdoku</h1>
+        <button id="quickPair">Quick Pair</button>
+    </div>
+    <div id="gameBoard">
+        <!-- Sudoku 4x4 grid will be generated here -->
+    </div>
+    <!-- Button to submit the solution -->
+    <button id="submitBtn" disabled>Submit Puzzle</button>
+
+    <script>
+        var client_id = Math.floor(Math.random() * 100);
+        var ws = new WebSocket(`ws://172.234.250.234:8000/ws/${client_id}`);
+        var gameBoard = document.getElementById('gameBoard');
+        var lobby = document.getElementById('lobby');
+        var submitBtn = document.getElementById('submitBtn'); // Get the submit button
+        var room_id;
+
+        ws.onopen = function() {
+            console.log('Connected to the server.');
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket Error: ' + error);
+        };
+
+        ws.onmessage = function(event) {
+            var message = JSON.parse(event.data);
+            switch (message.action) {
+                case 'start_game':
+                    room_id = message.room_id;
+                    lobby.style.display = 'none';
+                    submitBtn.disabled = false; // Enable submit button when game starts
+                    updateBoard(message.puzzle);
+                    gameBoard.style.display = 'grid';
+                    break;
+                case 'update_board':
+                    updateBoard(message.puzzle);
+                    break;
+                case 'game_end':
+                    alert('Game Over! Winner: ' + (message.winner === client_id ? 'You' : 'Opponent'));
+                    resetGame();
+                    break;
+                case 'incorrect_solution':
+                    alert('Incorrect solution, try again.');
+                    break;
+                case 'reset_game':
+                    resetGameUI();
+                    break;
+            }
+        };
+
+        submitBtn.addEventListener('click', submitSolution);
+
+        function resetGame() {
+            gameBoard.innerHTML = '';
+            gameBoard.style.display = 'none';
+            lobby.style.display = 'flex';
+            submitBtn.disabled = true; // Disable submit button after game ends
+        }
+
+        document.getElementById('quickPair').addEventListener('click', function() {
+            ws.send(JSON.stringify({ action: 'quick_pair', client_id: client_id }));
+            this.disabled = true;
+            this.textContent = 'Waiting for opponent...';
+        });
+
+        function createTile(value, x, y) {
+            var tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.textContent = value > 0 ? value : '';
+            tile.onclick = function() {
+                var newValue = (parseInt(tile.textContent) % 4) + 1;
+                tile.textContent = newValue;
+                ws.send(JSON.stringify({
+                    action: 'make_move',
+                    value: newValue,
+                    x: x,
+                    y: y,
+                    room_id: room_id,
+                    client_id: client_id
+                }));
+            };
+            return tile;
+        }
+
+        function updateBoard(puzzle) {
+            gameBoard.innerHTML = '';
+            puzzle.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    gameBoard.appendChild(createTile(value, x, y));
+                });
+            });
+        }
+
+        function submitSolution() {
+            var submittedSolution = [];
+            for (var y = 0; y < 4; y++) {
+                var row = [];
+                for (var x = 0; x < 4; x++) {
+                    // Calculate index based on row and column to find the tile
+                    var tileIndex = y * 4 + x;
+                    var tile = gameBoard.children[tileIndex];
+                    var value = parseInt(tile.textContent) || 0; // Parse the number, defaulting to 0 if empty
+                    row.push(value);
+                }
+                submittedSolution.push(row);
+            }
+            // Send the solution to the server
+            ws.send(JSON.stringify({
+                action: 'submit_solution',
+                solution: submittedSolution,
+                room_id: room_id,
+                client_id: client_id
+            }));
+        }
+
+        // Call the function to initialize the WebSocket connection
+        connectWebSocket();
+
+        // Function to be called when the WebSocket connection is established
+        function onConnectionEstablished() {
+            document.getElementById('quickPair').disabled = false;
+            document.getElementById('quickPair').textContent = 'Quick Pair';
+        }
+
+        // Disable the submit button initially
+        submitBtn.disabled = true;
+
+        // Enable the submit button once the game board is updated
+        function enableSubmitButton() {
+            submitBtn.disabled = false;
+        }
+
+        // Reset the game board and UI when the game ends
+        function resetGameUI() {
+            lobby.style.display = 'flex'; // Show the lobby
+            gameBoard.style.display = 'none'; // Hide the game board
+            document.getElementById('quickPair').disabled = false; // Enable Quick Pair button
+            document.getElementById('quickPair').textContent = 'Quick Pair'; // Reset button text
+            submitBtn.disabled = true; // Disable the submit button
+        }
+    </script>
+</body>
+</html>
