@@ -60,7 +60,7 @@
 
     <script>
         var client_id = Math.floor(Math.random() * 100);
-        var ws = new WebSocket(`ws://172.234.250.234:8000/ws/${client_id}`);
+        var ws = new WebSocket(`wss://api.catdoku.io/ws/${client_id}`);
         var gameBoard = document.getElementById('gameBoard');
         var lobby = document.getElementById('lobby');
         var submitBtn = document.getElementById('submitBtn'); // Get the submit button
