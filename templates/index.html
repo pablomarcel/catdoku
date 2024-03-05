@@ -46,6 +46,11 @@
             margin-top: 20px;
         }
     </style>
+    <!-- SweetAlert2 CSS file -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <!-- SweetAlert2 JS file -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div id="lobby">
@@ -88,11 +93,21 @@
                     updateBoard(message.puzzle);
                     break;
                 case 'game_end':
-                    alert('Game Over! Winner: ' + (message.winner === client_id ? 'You' : 'Opponent'));
+                    Swal.fire({
+                        title: 'Game Over!',
+                        text: 'Winner: ' + (message.winner === client_id ? 'You' : 'Opponent'),
+                        icon: 'success',
+                        confirmButtonText: 'Close'
+                    });
                     resetGame();
                     break;
                 case 'incorrect_solution':
-                    alert('Incorrect solution, try again.');
+                    Swal.fire({
+                        title: 'Try Again!',
+                        text: 'Incorrect solution, try again.',
+                        icon: 'error',
+                        confirmButtonText: 'Close'
+                    });
                     break;
                 case 'reset_game':
                     resetGameUI();
@@ -118,10 +133,13 @@
         function createTile(value, x, y) {
             var tile = document.createElement('div');
             tile.className = 'tile';
-            tile.textContent = value > 0 ? value : '';
+            tile.textContent = value > 0 ? value.toString() : ''; // Display the value or an empty string
             tile.onclick = function() {
-                var newValue = (parseInt(tile.textContent) % 4) + 1;
-                tile.textContent = newValue;
+                // Parse the current value of tile, defaulting to 0 if it's empty
+                var currentValue = parseInt(tile.textContent) || 0;
+                var newValue = (currentValue % 4) + 1; // Increment and wrap around to 1 after 4
+                tile.textContent = newValue; // Update the tile with the new value
+                // Send the new value to the server
                 ws.send(JSON.stringify({
                     action: 'make_move',
                     value: newValue,
@@ -133,6 +151,7 @@
             };
             return tile;
         }
+
 
         function updateBoard(puzzle) {
             gameBoard.innerHTML = '';
