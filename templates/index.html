@@ -34,6 +34,7 @@
             align-items: center;
             cursor: pointer;
             border: 1px solid #ddd;
+            background-size: cover;
         }
         .tile.correct {
             background-color: #c8e6c9;
@@ -130,16 +131,39 @@
             this.textContent = 'Waiting for opponent...';
         });
 
+        // Cat image sources
+        function getCatImage(value) {
+            switch(value) {
+                case 1: return 'img1.png';
+                case 2: return 'img2.png';
+                case 3: return 'img3.png';
+                case 4: return 'img4.png';
+                default: return ''; // No image for empty tile
+            }
+        }
+
         function createTile(value, x, y) {
             var tile = document.createElement('div');
             tile.className = 'tile';
-            tile.textContent = value > 0 ? value.toString() : ''; // Display the value or an empty string
+            // Set the value in a data-attribute
+            tile.dataset.value = value;
+
+            // Set the background image based on the numerical value
+            if (value > 0) {
+                tile.style.backgroundImage = 'url(' + getCatImage(value) + ')';
+            } else {
+                // Empty tiles don't have a background image
+                tile.style.backgroundImage = '';
+            }
+
             tile.onclick = function() {
-                // Parse the current value of tile, defaulting to 0 if it's empty
-                var currentValue = parseInt(tile.textContent) || 0;
-                var newValue = (currentValue % 4) + 1; // Increment and wrap around to 1 after 4
-                tile.textContent = newValue; // Update the tile with the new value
-                // Send the new value to the server
+                // Use the dataset value to increment and find the next cat image
+                var currentValue = parseInt(tile.dataset.value);
+                var newValue = (currentValue % 4) + 1; // This will cycle through values 1-4
+                tile.dataset.value = newValue; // Update the dataset value
+                tile.style.backgroundImage = 'url(' + getCatImage(newValue) + ')';
+
+                // Send the new value to the server, this needs to be the numerical value
                 ws.send(JSON.stringify({
                     action: 'make_move',
                     value: newValue,
@@ -149,6 +173,7 @@
                     client_id: client_id
                 }));
             };
+
             return tile;
         }
 
@@ -167,15 +192,13 @@
             for (var y = 0; y < 4; y++) {
                 var row = [];
                 for (var x = 0; x < 4; x++) {
-                    // Calculate index based on row and column to find the tile
                     var tileIndex = y * 4 + x;
                     var tile = gameBoard.children[tileIndex];
-                    var value = parseInt(tile.textContent) || 0; // Parse the number, defaulting to 0 if empty
+                    var value = parseInt(tile.dataset.value); // Use data-value for the logic
                     row.push(value);
                 }
                 submittedSolution.push(row);
             }
-            // Send the solution to the server
             ws.send(JSON.stringify({
                 action: 'submit_solution',
                 solution: submittedSolution,
