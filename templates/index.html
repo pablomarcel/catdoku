@@ -174,25 +174,20 @@
         function createTile(value, x, y) {
             var tile = document.createElement('div');
             tile.className = 'tile';
-            // Set the value in a data-attribute
             tile.dataset.value = value;
 
-            // Set the background image based on the numerical value
             if (value > 0) {
                 tile.style.backgroundImage = 'url(' + getCatImage(value) + ')';
             } else {
-                // Empty tiles don't have a background image
-                tile.style.backgroundImage = '';
+                tile.style.backgroundImage = 'url(wild.png)'; // Placeholder for empty tiles
             }
 
             tile.onclick = function() {
-                // Use the dataset value to increment and find the next cat image
                 var currentValue = parseInt(tile.dataset.value);
                 var newValue = (currentValue % 4) + 1; // This will cycle through values 1-4
                 tile.dataset.value = newValue; // Update the dataset value
-                tile.style.backgroundImage = 'url(' + getCatImage(newValue) + ')';
+                tile.style.backgroundImage = newValue > 0 ? 'url(' + getCatImage(newValue) + ')' : 'url(wild.png)';
 
-                // Send the new value to the server, this needs to be the numerical value
                 ws.send(JSON.stringify({
                     action: 'make_move',
                     value: newValue,
