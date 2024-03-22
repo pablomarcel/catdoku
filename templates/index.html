@@ -51,6 +51,8 @@
         .tile:hover {
             transform: scale(1.05);
             border-color: #f69d39;
+            filter: brightness(1.2) saturate(1.5);
+            transition: filter 0.3s ease;
         }
         .tile.correct {
             background-color: #c8e6c9;
@@ -93,6 +95,14 @@
     <!-- Button to submit the solution -->
     <button id="submitBtn" class="btn btn-lg btn-success" disabled>Submit</button>
 
+    <!-- Audio element for background music -->
+    <audio id="backgroundMusic" loop>
+        <source src="breaktime.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <!-- Include the GSAP library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.4/gsap.min.js"></script>
     <script>
         var client_id = Math.floor(Math.random() * 100);
         var ws = new WebSocket(`wss://api.catdoku.io/ws/${client_id}`);
@@ -100,6 +110,20 @@
         var lobby = document.getElementById('lobby');
         var submitBtn = document.getElementById('submitBtn'); // Get the submit button
         var room_id;
+
+        // After the existing code, start playing the background music
+        var backgroundMusic = document.getElementById('backgroundMusic');
+        backgroundMusic.volume = 0.5; // Set the volume to 50% so it's not too loud. Adjust as needed.
+
+        window.onload = function() {
+            // Play the music as soon as the window loads
+            backgroundMusic.play().catch(function(e) {
+                console.log('Audio play failed: ' + e);
+                // This catch handles the case where browsers block autoplay,
+                // You might need to start the music on a user event if autoplay is not allowed.
+            });
+        };
+
 
         ws.onopen = function() {
             console.log('Connected to the server.');
@@ -182,11 +206,33 @@
                 tile.style.backgroundImage = 'url(wild.png)'; // Placeholder for empty tiles
             }
 
+            // GSAP animation for the tile
+            gsap.from(tile, {
+                scale: 0,
+                opacity: 0,
+                rotation: 180,
+                duration: 0.5,
+                ease: "back.out(1.7)"
+            });
+
             tile.onclick = function() {
                 var currentValue = parseInt(tile.dataset.value);
                 var newValue = (currentValue % 4) + 1; // This will cycle through values 1-4
                 tile.dataset.value = newValue; // Update the dataset value
                 tile.style.backgroundImage = newValue > 0 ? 'url(' + getCatImage(newValue) + ')' : 'url(wild.png)';
+
+                // Animate the tile when it's clicked
+                gsap.to(tile, {
+                    scale: 1.1,
+                    duration: 0.2,
+                    ease: "elastic.out(1, 0.25)",
+                    onComplete: function() {
+                        gsap.to(tile, {
+                            scale: 1,
+                            duration: 0.2
+                        });
+                    }
+                });
 
                 ws.send(JSON.stringify({
                     action: 'make_move',
@@ -200,7 +246,6 @@
 
             return tile;
         }
-
 
         function updateBoard(puzzle) {
             gameBoard.innerHTML = '';
