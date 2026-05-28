@@ -104,8 +104,11 @@
     <!-- Include the GSAP library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.10.4/gsap.min.js"></script>
     <script>
+        const WS_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "ws://localhost:8000"
+        : "wss://api.catdoku.org";
         var client_id = Math.floor(Math.random() * 100);
-        var ws = new WebSocket(`wss://api.catdoku.io/ws/${client_id}`);
+        var ws = new WebSocket(`${WS_BASE}/ws/${client_id}`);
         var gameBoard = document.getElementById('gameBoard');
         var lobby = document.getElementById('lobby');
         var submitBtn = document.getElementById('submitBtn'); // Get the submit button
